@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>体育选课系统 - 教师端</title>
+    
+    <!-- ElementUI CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- Vue.js -->
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <!-- ElementUI JS -->
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <!-- Axios -->
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <!-- Moment.js -->
+    <script src="https://unpkg.com/moment/moment.js"></script>
+    <script src="https://unpkg.com/moment/locale/zh-cn.js"></script>
+    <!-- ECharts图表库 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    
+    <!-- 自定义样式 -->
+    <link rel="stylesheet" href="/css/teacher.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 登录对话框 -->
+        <el-dialog
+            title="教师登录"
+            :visible.sync="loginDialogVisible"
+            width="400px"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+            :show-close="false">
+            <el-form :model="loginForm" :rules="loginRules" ref="loginForm" label-width="80px">
+                <el-form-item label="用户名" prop="username">
+                    <el-input v-model="loginForm.username" placeholder="请输入用户名"></el-input>
+                </el-form-item>
+                <el-form-item label="密码" prop="password">
+                    <el-input 
+                        v-model="loginForm.password" 
+                        type="password" 
+                        placeholder="请输入密码"
+                        @keyup.enter.native="handleLogin">
+                    </el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button type="primary" @click="handleLogin" :loading="loginLoading">登录</el-button>
+            </div>
+        </el-dialog>
+
+        <!-- 主界面 -->
+        <div v-if="isLoggedIn">
+            <!-- 顶部导航栏 -->
+            <el-header class="main-header">
+                <div class="header-content">
+                    <div class="logo">
+                        <h2>体育选课系统 - 教师端</h2>
+                    </div>
+                    <div class="user-info">
+                        <el-dropdown @command="handleUserCommand">
+                            <span class="user-dropdown">
+                                <i class="el-icon-user-solid"></i>
+                                {{ currentUser.name }} ({{ currentUser.title }})
+                                <i class="el-icon-arrow-down"></i>
+                            </span>
+                            <el-dropdown-menu slot="dropdown">
+                                <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+                                <el-dropdown-item command="password">修改密码</el-dropdown-item>
+                                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </el-dropdown>
+                    </div>
+                </div>
+            </el-header>
+
+            <!-- 主体内容 -->
+            <el-container class="main-container">
+                <!-- 侧边栏 -->
+                <el-aside width="250px" class="sidebar">
+                    <el-menu
+                        :default-active="activeMenu"
+                        class="sidebar-menu"
+                        @select="handleMenuSelect"
+                        background-color="#304156"
+                        text-color="#bfcbd9"
+                        active-text-color="#409EFF">
+                        
+                        <el-menu-item index="dashboard">
+                            <i class="el-icon-data-line"></i>
+                            <span>工作台</span>
+                        </el-menu-item>
+                        
+                        <el-submenu index="courses">
+                            <template slot="title">
+                                <i class="el-icon-notebook-1"></i>
+                                <span>课程管理</span>
+                            </template>
+                            <el-menu-item index="course-list">课程列表</el-menu-item>
+                            <el-menu-item index="course-create">创建课程</el-menu-item>
+                        </el-submenu>
+                        
+                        <el-menu-item index="students">
+                            <i class="el-icon-user"></i>
+                            <span>选课名单</span>
+                        </el-menu-item>
+                        
+                        <el-submenu index="grades">
+                            <template slot="title">
+                                <i class="el-icon-edit-outline"></i>
+                                <span>成绩管理</span>
+                            </template>
+                            <el-menu-item index="grade-input">成绩录入</el-menu-item>
+                            <el-menu-item index="grade-statistics">成绩统计</el-menu-item>
+                        </el-submenu>
+                        
+                        <el-menu-item index="applications">
+                            <i class="el-icon-document"></i>
+                            <span>特殊申请</span>
+                            <el-badge :value="pendingApplicationsCount" v-if="pendingApplicationsCount > 0" class="badge"></el-badge>
+                        </el-menu-item>
+                        
+                        <el-menu-item index="qualifications">
+                            <i class="el-icon-medal"></i>
+                            <span>资质管理</span>
+                        </el-menu-item>
+                    </el-menu>
+                </el-aside>
+
+                <!-- 主内容区域 -->
+                <el-main class="main-content">
+                    <!-- 工作台 -->
+                    <div v-if="activeMenu === 'dashboard'" class="dashboard">
+                        <el-row :gutter="20">
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-content">
+                                        <div class="stat-number">{{ dashboardStats.totalCourses }}</div>
+                                        <div class="stat-label">我的课程</div>
+                                    </div>
+                                    <i class="el-icon-notebook-1 stat-icon"></i>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-content">
+                                        <div class="stat-number">{{ dashboardStats.totalStudents }}</div>
+                                        <div class="stat-label">选课学生</div>
+                                    </div>
+                                    <i class="el-icon-user stat-icon"></i>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-content">
+                                        <div class="stat-number">{{ dashboardStats.pendingGrades }}</div>
+                                        <div class="stat-label">待录成绩</div>
+                                    </div>
+                                    <i class="el-icon-edit-outline stat-icon"></i>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-content">
+                                        <div class="stat-number">{{ dashboardStats.pendingApplications }}</div>
+                                        <div class="stat-label">待处理申请</div>
+                                    </div>
+                                    <i class="el-icon-document stat-icon"></i>
+                                </el-card>
+                            </el-col>
+                        </el-row>
+
+                        <!-- 最近活动 -->
+                        <el-card class="recent-activities" style="margin-top: 20px;">
+                            <div slot="header">
+                                <span>最近活动</span>
+                            </div>
+                            <el-timeline>
+                                <el-timeline-item
+                                    v-for="activity in recentActivities"
+                                    :key="activity.id"
+                                    :timestamp="activity.time"
+                                    :type="activity.type">
+                                    {{ activity.content }}
+                                </el-timeline-item>
+                            </el-timeline>
+                        </el-card>
+                    </div>
+
+                    <!-- 课程列表 -->
+                    <div v-if="activeMenu === 'course-list'" class="course-list">
+                        <div class="page-header">
+                            <h3>课程列表</h3>
+                            <el-button type="primary" @click="activeMenu = 'course-create'">创建课程</el-button>
+                        </div>
+                        
+                        <!-- 筛选条件 -->
+                        <el-card class="filter-card">
+                            <el-form :inline="true" :model="courseFilter" class="filter-form">
+                                <el-form-item label="状态">
+                                    <el-select v-model="courseFilter.status" placeholder="全部状态" clearable>
+                                        <el-option label="草稿" value="draft"></el-option>
+                                        <el-option label="已发布" value="published"></el-option>
+                                        <el-option label="已关闭" value="closed"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="学期">
+                                    <el-input v-model="courseFilter.semester" placeholder="如：2027春"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button type="primary" @click="loadCourses">查询</el-button>
+                                    <el-button @click="resetCourseFilter">重置</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-card>
+
+                        <!-- 课程表格 -->
+                        <el-table :data="courses" v-loading="coursesLoading" style="width: 100%" stripe :key="'course-list-table'">
+                            <el-table-column label="课程代码" width="110" align="center">
+                                <template slot-scope="scope">
+                                    {{ scope.row.course_code || '-' }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="课程名称" min-width="140" show-overflow-tooltip align="center">
+                                <template slot-scope="scope">
+                                    {{ scope.row.name || scope.row.course_name || '未知' }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="category_name" label="类别" width="90" align="center"></el-table-column>
+                            <el-table-column prop="venue_name" label="场地" width="110" align="center"></el-table-column>
+                            <el-table-column label="上课时间" width="140" align="center">
+                                <template slot-scope="scope">
+                                    <div style="font-size: 12px; line-height: 1.4;">
+                                        <div>{{ getWeekdayName(scope.row.day_of_week) }}</div>
+                                        <div style="color: #666;">{{ scope.row.start_time }}-{{ scope.row.end_time }}</div>
+                                    </div>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="选课情况" width="100" align="center">
+                                <template slot-scope="scope">
+                                    <div style="font-size: 12px;">
+                                        <span :style="{color: scope.row.enrolled_count >= scope.row.capacity ? '#f56c6c' : '#67c23a'}">{{ scope.row.enrolled_count }}</span>
+                                        <span style="color: #909399;">/{{ scope.row.capacity }}</span>
+                                    </div>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="status" label="状态" width="90" align="center">
+                                <template slot-scope="scope">
+                                    <el-tag :type="getStatusType(scope.row.status)">
+                                        {{ getStatusText(scope.row.status) }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="340" align="center" fixed="right">
+                                <template slot-scope="scope">
+                                    <el-button 
+                                        size="mini" 
+                                        icon="el-icon-edit" 
+                                        @click="editCourse(scope.row)"
+                                        title="编辑课程">
+                                        编辑
+                                    </el-button>
+                                    <el-button 
+                                        v-if="scope.row.status === 'published'" 
+                                        size="mini" 
+                                        type="success" 
+                                        icon="el-icon-user" 
+                                        @click="viewStudents(scope.row)"
+                                        title="查看学生名单">
+                                        名单
+                                    </el-button>
+                                    <el-button 
+                                        v-if="scope.row.status === 'draft'" 
+                                        size="mini" 
+                                        type="primary" 
+                                        icon="el-icon-upload" 
+                                        @click="publishCourse(scope.row)"
+                                        title="发布课程">
+                                        发布
+                                    </el-button>
+                                    <el-button 
+                                        v-if="scope.row.status === 'published'" 
+                                        size="mini" 
+                                        type="warning" 
+                                        icon="el-icon-lock" 
+                                        @click="closeCourse(scope.row)"
+                                        title="关闭课程">
+                                        关闭
+                                    </el-button>
+                                    <el-button 
+                                        v-if="scope.row.status === 'closed'" 
+                                        size="mini" 
+                                        type="success" 
+                                        icon="el-icon-unlock" 
+                                        @click="openCourse(scope.row)"
+                                        title="重新开启课程">
+                                        开启
+                                    </el-button>
+                                    <el-button 
+                                        v-if="scope.row.status === 'closed' || scope.row.enrolled_count === 0" 
+                                        size="mini" 
+                                        type="danger" 
+                                        icon="el-icon-delete" 
+                                        @click="deleteCourse(scope.row)"
+                                        title="删除课程">
+                                        删除
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+
+                        <!-- 分页 -->
+                        <el-pagination
+                            @size-change="handleSizeChange"
+                            @current-change="handleCurrentChange"
+                            :current-page="coursePagination.page"
+                            :page-sizes="[10, 20, 50, 100]"
+                            :page-size="coursePagination.limit"
+                            layout="total, sizes, prev, pager, next, jumper"
+                            :total="coursePagination.total"
+                            style="margin-top: 20px; text-align: right;">
+                        </el-pagination>
+                    </div>
+
+                    <!-- 创建/编辑课程 -->
+                    <div v-if="activeMenu === 'course-create' || activeMenu === 'course-edit'" class="course-form">
+                        <div class="page-header">
+                            <h3>{{ activeMenu === 'course-create' ? '创建课程' : '编辑课程' }}</h3>
+                            <el-button @click="activeMenu = 'course-list'">返回列表</el-button>
+                        </div>
+
+                        <el-card>
+                            <el-form :model="courseForm" :rules="courseRules" ref="courseForm" label-width="120px">
+                                <el-row :gutter="20">
+                                    <el-col :span="12">
+                                        <el-form-item label="课程代码" prop="course_code">
+                                            <el-input v-model="courseForm.course_code" placeholder="如：PE001"></el-input>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="12">
+                                        <el-form-item label="课程名称" prop="name">
+                                            <el-input v-model="courseForm.name" placeholder="请输入课程名称"></el-input>
+                                        </el-form-item>
+                                    </el-col>
+                                </el-row>
+
+                                <el-row :gutter="20">
+                                    <el-col :span="12">
+                                        <el-form-item label="体育类别" prop="category_id">
+                                            <el-select v-model="courseForm.category_id" placeholder="请选择类别">
+                                                <el-option
+                                                    v-for="category in categories"
+                                                    :key="category.id"
+                                                    :label="category.name"
+                                                    :value="category.id">
+                                                </el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="12">
+                                        <el-form-item label="上课场地" prop="venue_id">
+                                            <el-select v-model="courseForm.venue_id" placeholder="请选择场地">
+                                                <el-option
+                                                    v-for="venue in venues"
+                                                    :key="venue.id"
+                                                    :label="venue.name"
+                                                    :value="venue.id">
+                                                </el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                    </el-col>
+                                </el-row>
+
+                                <el-row :gutter="20">
+                                    <el-col :span="8">
+                                        <el-form-item label="学分" prop="credits">
+                                            <el-input-number v-model="courseForm.credits" :min="1" :max="10"></el-input-number>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="8">
+                                        <el-form-item label="课程容量" prop="capacity">
+                                            <el-input-number v-model="courseForm.capacity" :min="1" :max="200"></el-input-number>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="8">
+                                        <el-form-item label="星期" prop="day_of_week">
+                                            <el-select v-model="courseForm.day_of_week" placeholder="请选择">
+                                                <el-option label="星期一" :value="1"></el-option>
+                                                <el-option label="星期二" :value="2"></el-option>
+                                                <el-option label="星期三" :value="3"></el-option>
+                                                <el-option label="星期四" :value="4"></el-option>
+                                                <el-option label="星期五" :value="5"></el-option>
+                                                <el-option label="星期六" :value="6"></el-option>
+                                                <el-option label="星期日" :value="7"></el-option>
+                                            </el-select>
+                                        </el-form-item>
+                                    </el-col>
+                                </el-row>
+
+                                <el-row :gutter="20">
+                                    <el-col :span="12">
+                                        <el-form-item label="开始时间" prop="start_time">
+                                            <el-time-picker
+                                                v-model="courseForm.start_time"
+                                                format="HH:mm"
+                                                value-format="HH:mm"
+                                                placeholder="选择开始时间">
+                                            </el-time-picker>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="12">
+                                        <el-form-item label="结束时间" prop="end_time">
+                                            <el-time-picker
+                                                v-model="courseForm.end_time"
+                                                format="HH:mm"
+                                                value-format="HH:mm"
+                                                placeholder="选择结束时间">
+                                            </el-time-picker>
+                                        </el-form-item>
+                                    </el-col>
+                                </el-row>
+
+                                <el-row :gutter="20">
+                                    <el-col :span="12">
+                                        <el-form-item label="学期">
+                                            <el-input v-model="courseForm.semester" placeholder="如：2027春"></el-input>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="12">
+                                        <el-form-item label="学年">
+                                            <el-input v-model="courseForm.academic_year" placeholder="如：2025-2026"></el-input>
+                                        </el-form-item>
+                                    </el-col>
+                                </el-row>
+
+                                <el-form-item label="上课周次">
+                                    <el-input v-model="courseForm.weeks" placeholder="如：1-16周"></el-input>
+                                </el-form-item>
+
+                                <el-form-item label="选课要求">
+                                    <el-input
+                                        type="textarea"
+                                        v-model="courseForm.requirements"
+                                        placeholder="请输入选课要求，如年级限制等"
+                                        :rows="3">
+                                    </el-input>
+                                </el-form-item>
+
+                                <el-form-item label="课程描述">
+                                    <el-input
+                                        type="textarea"
+                                        v-model="courseForm.description"
+                                        placeholder="请输入课程描述"
+                                        :rows="4">
+                                    </el-input>
+                                </el-form-item>
+
+                                <el-form-item label="教学大纲">
+                                    <el-input
+                                        type="textarea"
+                                        v-model="courseForm.syllabus"
+                                        placeholder="请输入教学大纲"
+                                        :rows="5">
+                                    </el-input>
+                                </el-form-item>
+
+                                <el-form-item label="考核方式">
+                                    <el-input
+                                        type="textarea"
+                                        v-model="courseForm.assessment_method"
+                                        placeholder="请输入考核方式"
+                                        :rows="3">
+                                    </el-input>
+                                </el-form-item>
+
+                                <el-form-item>
+                                    <el-button type="primary" @click="saveCourse" :loading="saveLoading">保存</el-button>
+                                    <el-button @click="resetCourseForm">重置</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-card>
+                    </div>
+
+                    <!-- 选课名单管理 -->
+                    <div v-if="activeMenu === 'students'" class="students-page">
+                        <div class="page-header">
+                            <h3>选课名单管理</h3>
+                            <el-button type="primary" @click="showExportDialog = true" icon="el-icon-download" :disabled="!selectedCourse">导出名单</el-button>
+                        </div>
+
+                        <!-- 课程筛选 -->
+                        <el-card class="filter-card">
+                            <el-form :inline="true" :model="studentsFilter" class="filter-form">
+                                <el-form-item label="选择课程">
+                                    <el-select 
+                                        v-model="studentsFilter.courseId" 
+                                        placeholder="请选择课程" 
+                                        @change="loadCourseStudents"
+                                        style="width: 300px;"
+                                        filterable>
+                                        <el-option
+                                            v-for="course in coursesForStudentFilter"
+                                            :key="course.id"
+                                            :label="`${course.course_code} - ${course.name} (${course.enrolled_count}/${course.capacity})`"
+                                            :value="course.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="选课状态">
+                                    <el-select v-model="studentsFilter.status" @change="loadCourseStudents" clearable style="width: 150px;">
+                                        <el-option label="已选课" value="selected"></el-option>
+                                        <el-option label="候补" value="waiting"></el-option>
+                                        <el-option label="已退课" value="dropped"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button @click="resetStudentsFilter">重置</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-card>
+
+                        <!-- 提示信息 -->
+                        <el-alert
+                            v-if="!studentsFilter.courseId"
+                            title="请选择课程"
+                            type="info"
+                            description="请在上方下拉框中选择一个课程，查看该课程的学生选课名单。"
+                            :closable="false"
+                            show-icon
+                            style="margin: 20px 0;">
+                        </el-alert>
+
+                        <!-- 课程信息 -->
+                        <el-card v-if="selectedCourse" class="course-info-highlight" shadow="hover" style="margin-bottom: 20px;">
+                            <div class="course-info-header">
+                                <div class="course-title-section">
+                                    <h3 class="course-main-title">
+                                        <i class="el-icon-notebook-2"></i>
+                                        {{ selectedCourse.name }}
+                                    </h3>
+                                    <el-tag type="info" size="medium">{{ selectedCourse.course_code }}</el-tag>
+                                </div>
+                            </div>
+                            <el-divider></el-divider>
+                            <el-row :gutter="30">
+                                <el-col :span="8">
+                                    <div class="stat-box">
+                                        <div class="stat-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                                            <i class="el-icon-time"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <div class="stat-label">上课时间</div>
+                                            <div class="stat-value">{{ getWeekdayName(selectedCourse.day_of_week) }} {{ formatTime(selectedCourse.start_time) }}-{{ formatTime(selectedCourse.end_time) }}</div>
+                                        </div>
+                                    </div>
+                                </el-col>
+                                <el-col :span="8">
+                                    <div class="stat-box">
+                                        <div class="stat-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                                            <i class="el-icon-location"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <div class="stat-label">上课场地</div>
+                                            <div class="stat-value">{{ selectedCourse.venue_name || '-' }}</div>
+                                        </div>
+                                    </div>
+                                </el-col>
+                                <el-col :span="8">
+                                    <div class="stat-box">
+                                        <div class="stat-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                                            <i class="el-icon-user"></i>
+                                        </div>
+                                        <div class="stat-content">
+                                            <div class="stat-label">选课情况</div>
+                                            <div class="stat-value">
+                                                <span :style="{color: courseStudents.length >= selectedCourse.capacity ? '#f56c6c' : '#67c23a', fontWeight: 'bold', fontSize: '18px'}">
+                                                    {{ courseStudents.length }}
+                                                </span>
+                                                <span style="color: #909399;"> / {{ selectedCourse.capacity }}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </el-col>
+                            </el-row>
+                        </el-card>
+
+                        <!-- 空状态提示 -->
+                        <el-empty 
+                            v-if="studentsFilter.courseId && courseStudents.length === 0 && !studentsLoading"
+                            description="该课程暂无学生选课"
+                            :image-size="100">
+                        </el-empty>
+
+                        <!-- 学生名单表格 -->
+                        <el-table 
+                            v-if="courseStudents.length > 0"
+                            :data="courseStudents" 
+                            v-loading="studentsLoading" 
+                            style="width: 100%" 
+                            stripe
+                            :key="'students-list-table'"
+                            @selection-change="handleStudentSelection">
+                            <el-table-column type="selection" width="55" align="center"></el-table-column>
+                            <el-table-column type="index" label="序号" width="60" align="center"></el-table-column>
+                            <el-table-column prop="student_id" label="学号" width="120" align="center"></el-table-column>
+                            <el-table-column prop="real_name" label="姓名" width="100" align="center"></el-table-column>
+                            <el-table-column prop="gender" label="性别" width="60" align="center">
+                                <template slot-scope="scope">
+                                    <span v-if="scope.row.gender === 'male'">男</span>
+                                    <span v-else-if="scope.row.gender === 'female'">女</span>
+                                    <span v-else style="color: #ccc;">-</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="grade" label="年级" width="80" align="center"></el-table-column>
+                            <el-table-column prop="major" label="专业" min-width="120" show-overflow-tooltip></el-table-column>
+                            <el-table-column prop="class_name" label="班级" width="100" align="center"></el-table-column>
+                            <el-table-column prop="phone" label="联系电话" width="120" align="center">
+                                <template slot-scope="scope">
+                                    <span v-if="scope.row.phone">{{ scope.row.phone }}</span>
+                                    <span v-else style="color: #ccc;">未填写</span>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="selection_time" label="选课时间" width="150" align="center">
+                                <template slot-scope="scope">
+                                    {{ formatDateTime(scope.row.selection_time) }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="status" label="状态" width="80" align="center">
+                                <template slot-scope="scope">
+                                    <el-tag :type="getSelectionStatusType(scope.row.status)">
+                                        {{ getSelectionStatusText(scope.row.status) }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="180" align="center">
+                                <template slot-scope="scope">
+                                    <el-button 
+                                        v-if="scope.row.status === 'selected'"
+                                        size="mini" 
+                                        type="warning" 
+                                        @click="handleStudentDrop(scope.row)">
+                                        退课
+                                    </el-button>
+                                    <el-button 
+                                        v-if="scope.row.status === 'waiting'"
+                                        size="mini" 
+                                        type="success" 
+                                        @click="handleStudentConfirm(scope.row)">
+                                        确认选课
+                                    </el-button>
+                                    <el-button 
+                                        size="mini" 
+                                        @click="viewStudentDetail(scope.row)">
+                                        详情
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+
+                        <!-- 批量操作 -->
+                        <div v-if="courseStudents.length > 0 && selectedStudents.length > 0" class="batch-operations" style="margin-top: 20px;">
+                            <el-alert
+                                :title="`已选择 ${selectedStudents.length} 名学生`"
+                                type="info"
+                                show-icon
+                                :closable="false"
+                                style="margin-bottom: 15px;">
+                            </el-alert>
+                            <el-button type="warning" @click="batchDropStudents">批量退课</el-button>
+                            <el-button type="primary" @click="batchExportStudents">导出选中学生</el-button>
+                        </div>
+
+                        <!-- 导出对话框 -->
+                        <el-dialog
+                            title="导出学生名单"
+                            :visible.sync="showExportDialog"
+                            width="500px">
+                            <el-form :model="exportForm" label-width="100px">
+                                <el-form-item label="导出课程">
+                                    <el-select v-model="exportForm.courseId" placeholder="请选择课程">
+                                        <el-option
+                                            v-for="course in coursesForStudentFilter"
+                                            :key="course.id"
+                                            :label="`${course.course_code} - ${course.name}`"
+                                            :value="course.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="导出格式">
+                                    <el-radio-group v-model="exportForm.format">
+                                        <el-radio label="excel">Excel格式</el-radio>
+                                        <el-radio label="pdf">PDF格式</el-radio>
+                                    </el-radio-group>
+                                </el-form-item>
+                                <el-form-item label="包含信息">
+                                    <el-checkbox-group v-model="exportForm.fields">
+                                        <el-checkbox label="student_id">学号</el-checkbox>
+                                        <el-checkbox label="real_name">姓名</el-checkbox>
+                                        <el-checkbox label="gender">性别</el-checkbox>
+                                        <el-checkbox label="grade">年级</el-checkbox>
+                                        <el-checkbox label="major">专业</el-checkbox>
+                                        <el-checkbox label="class_name">班级</el-checkbox>
+                                        <el-checkbox label="phone">联系电话</el-checkbox>
+                                        <el-checkbox label="selection_time">选课时间</el-checkbox>
+                                    </el-checkbox-group>
+                                </el-form-item>
+                            </el-form>
+                            <div slot="footer">
+                                <el-button @click="showExportDialog = false">取消</el-button>
+                                <el-button type="primary" @click="confirmExport" :loading="exportLoading">导出</el-button>
+                            </div>
+                        </el-dialog>
+                    </div>
+
+                    <!-- 成绩录入 -->
+                    <div v-if="activeMenu === 'grade-input'" class="grade-input-page">
+                        <div class="page-header">
+                            <h3>成绩录入</h3>
+                            <div>
+                                <el-button type="success" @click="batchGradeMode = !batchGradeMode">
+                                    {{ batchGradeMode ? '切换到单个录入' : '切换到批量录入' }}
+                                </el-button>
+                                <el-button type="primary" @click="showSubmitGrades = true" v-if="selectedGradeCourse">提交成绩</el-button>
+                            </div>
+                        </div>
+
+                        <!-- 课程选择 -->
+                        <el-card class="filter-card">
+                            <el-form :inline="true" :model="gradeFilter" class="filter-form">
+                                <el-form-item label="选择课程">
+                                    <el-select 
+                                        v-model="gradeFilter.courseId" 
+                                        placeholder="请选择课程" 
+                                        @change="loadCourseGrades"
+                                        style="width: 300px;">
+                                        <el-option
+                                            v-for="course in coursesForStudentFilter"
+                                            :key="course.id"
+                                            :label="`${course.course_code} - ${course.name}`"
+                                            :value="course.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="学期">
+                                    <el-input v-model="gradeFilter.semester" placeholder="如：2025春" style="width: 120px;"></el-input>
+                                </el-form-item>
+                                <el-form-item label="学年">
+                                    <el-input v-model="gradeFilter.academic_year" placeholder="如：2024-2025" style="width: 150px;"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button type="primary" @click="loadCourseGrades">查询</el-button>
+                                    <el-button @click="resetGradeFilter">重置</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-card>
+
+                        <!-- 成绩录入表格 -->
+                        <el-card v-if="selectedGradeCourse">
+                            <div slot="header">
+                                <span>{{ selectedGradeCourse.name }} - 成绩录入</span>
+                                <div style="float: right;">
+                                    <el-tag type="info">总人数：{{ courseGrades.length }}</el-tag>
+                                    <el-tag type="success" style="margin-left: 10px;">已录入：{{ completedGradesCount }}</el-tag>
+                                    <el-tag type="warning" style="margin-left: 10px;">未录入：{{ courseGrades.length - completedGradesCount }}</el-tag>
+                                </div>
+                            </div>
+
+                            <!-- 单个录入模式 -->
+                            <el-table 
+                                v-if="!batchGradeMode"
+                                :data="courseGrades" 
+                                v-loading="gradesLoading" 
+                                style="width: 100%" 
+                                stripe
+                                border
+                                :row-height="52">
+                                <el-table-column type="index" label="序号" width="60" align="center"></el-table-column>
+                                <el-table-column prop="student_number" label="学号" width="110" align="center"></el-table-column>
+                                <el-table-column prop="real_name" label="姓名" width="90" align="center"></el-table-column>
+                                <el-table-column prop="class_name" label="班级" width="110" align="center" show-overflow-tooltip></el-table-column>
+                                
+                                <el-table-column label="出勤分" width="95" align="center">
+                                    <template slot-scope="scope">
+                                        <el-input-number 
+                                            v-model="scope.row.attendance_score" 
+                                            :min="0" 
+                                            :max="100" 
+                                            :precision="1"
+                                            size="mini"
+                                            :controls="false"
+                                            @change="calculateTotalScore(scope.row)"
+                                            style="width: 75px">
+                                        </el-input-number>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="平时分" width="95" align="center">
+                                    <template slot-scope="scope">
+                                        <el-input-number 
+                                            v-model="scope.row.performance_score" 
+                                            :min="0" 
+                                            :max="100" 
+                                            :precision="1"
+                                            size="mini"
+                                            :controls="false"
+                                            @change="calculateTotalScore(scope.row)"
+                                            style="width: 75px">
+                                        </el-input-number>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="期中分" width="95" align="center">
+                                    <template slot-scope="scope">
+                                        <el-input-number 
+                                            v-model="scope.row.midterm_score" 
+                                            :min="0" 
+                                            :max="100" 
+                                            :precision="1"
+                                            size="mini"
+                                            :controls="false"
+                                            @change="calculateTotalScore(scope.row)"
+                                            style="width: 75px">
+                                        </el-input-number>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="期末分" width="95" align="center">
+                                    <template slot-scope="scope">
+                                        <el-input-number 
+                                            v-model="scope.row.final_score" 
+                                            :min="0" 
+                                            :max="100" 
+                                            :precision="1"
+                                            size="mini"
+                                            :controls="false"
+                                            @change="calculateTotalScore(scope.row)"
+                                            style="width: 75px">
+                                        </el-input-number>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="总分" width="75" align="center">
+                                    <template slot-scope="scope">
+                                        <el-tag :type="getTotalScoreType(scope.row.total_score)">
+                                            {{ scope.row.total_score || '--' }}
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="等级" width="65" align="center">
+                                    <template slot-scope="scope">
+                                        <el-tag :type="getGradeLevelType(scope.row.grade_level)">
+                                            {{ scope.row.grade_level || '--' }}
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="备注" min-width="150" show-overflow-tooltip>
+                                    <template slot-scope="scope">
+                                        <el-input 
+                                            v-model="scope.row.remarks" 
+                                            size="mini" 
+                                            placeholder="备注">
+                                        </el-input>
+                                    </template>
+                                </el-table-column>
+
+                                <el-table-column label="操作" width="80" align="center" fixed="right">
+                                    <template slot-scope="scope">
+                                        <el-button 
+                                            size="mini" 
+                                            type="primary" 
+                                            @click="saveStudentGrade(scope.row)"
+                                            :loading="scope.row._saving">
+                                            保存
+                                        </el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+
+                            <!-- 批量录入模式 -->
+                            <div v-if="batchGradeMode" class="batch-grade-mode">
+                                <el-alert
+                                    title="批量录入模式"
+                                    type="info"
+                                    description="您可以为所有学生批量设置相同的成绩，然后再进行个别调整。"
+                                    show-icon
+                                    style="margin-bottom: 20px;">
+                                </el-alert>
+
+                                <el-row :gutter="20" style="margin-bottom: 20px;">
+                                    <el-col :span="6">
+                                        <el-form-item label="批量出勤分">
+                                            <el-input-number 
+                                                v-model="batchGradeForm.attendance_score" 
+                                                :min="0" 
+                                                :max="100" 
+                                                :precision="1"
+                                                style="width: 100%;">
+                                            </el-input-number>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="6">
+                                        <el-form-item label="批量平时分">
+                                            <el-input-number 
+                                                v-model="batchGradeForm.performance_score" 
+                                                :min="0" 
+                                                :max="100" 
+                                                :precision="1"
+                                                style="width: 100%;">
+                                            </el-input-number>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="6">
+                                        <el-form-item label="批量期中分">
+                                            <el-input-number 
+                                                v-model="batchGradeForm.midterm_score" 
+                                                :min="0" 
+                                                :max="100" 
+                                                :precision="1"
+                                                style="width: 100%;">
+                                            </el-input-number>
+                                        </el-form-item>
+                                    </el-col>
+                                    <el-col :span="6">
+                                        <el-form-item label="批量期末分">
+                                            <el-input-number 
+                                                v-model="batchGradeForm.final_score" 
+                                                :min="0" 
+                                                :max="100" 
+                                                :precision="1"
+                                                style="width: 100%;">
+                                            </el-input-number>
+                                        </el-form-item>
+                                    </el-col>
+                                </el-row>
+
+                                <el-button type="primary" @click="applyBatchGrade" style="margin-bottom: 20px;">应用到所有学生</el-button>
+                                <el-button type="success" @click="saveBatchGrades" :loading="batchSaving">批量保存所有成绩</el-button>
+
+                                <!-- 批量成绩预览表格 -->
+                                <el-table :data="courseGrades" style="width: 100%" stripe border :row-height="52">
+                                    <el-table-column type="index" label="序号" width="60" align="center"></el-table-column>
+                                    <el-table-column prop="student_number" label="学号" width="110" align="center"></el-table-column>
+                                    <el-table-column prop="real_name" label="姓名" width="90" align="center"></el-table-column>
+                                    <el-table-column prop="class_name" label="班级" width="110" align="center" show-overflow-tooltip></el-table-column>
+                                    <el-table-column prop="attendance_score" label="出勤分" width="80" align="center"></el-table-column>
+                                    <el-table-column prop="performance_score" label="平时分" width="80" align="center"></el-table-column>
+                                    <el-table-column prop="midterm_score" label="期中分" width="80" align="center"></el-table-column>
+                                    <el-table-column prop="final_score" label="期末分" width="80" align="center"></el-table-column>
+                                    <el-table-column label="总分" width="75" align="center">
+                                        <template slot-scope="scope">
+                                            <el-tag :type="getTotalScoreType(scope.row.total_score)">
+                                                {{ scope.row.total_score || '--' }}
+                                            </el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column label="等级" width="65" align="center">
+                                        <template slot-scope="scope">
+                                            <el-tag :type="getGradeLevelType(scope.row.grade_level)">
+                                                {{ scope.row.grade_level || '--' }}
+                                            </el-tag>
+                                        </template>
+                                    </el-table-column>
+                                    <el-table-column prop="remarks" label="备注" min-width="150" show-overflow-tooltip></el-table-column>
+                                </el-table>
+                            </div>
+                        </el-card>
+
+                        <!-- 提交成绩对话框 -->
+                        <el-dialog
+                            title="提交成绩到教务系统"
+                            :visible.sync="showSubmitGrades"
+                            width="500px">
+                            <el-alert
+                                title="提交后将无法修改成绩，请确保所有成绩都已正确录入！"
+                                type="warning"
+                                show-icon
+                                style="margin-bottom: 20px;">
+                            </el-alert>
+                            <el-form :model="submitGradeForm" label-width="100px">
+                                <el-form-item label="学期">
+                                    <el-input v-model="submitGradeForm.semester" placeholder="如：2025春"></el-input>
+                                </el-form-item>
+                                <el-form-item label="学年">
+                                    <el-input v-model="submitGradeForm.academic_year" placeholder="如：2024-2025"></el-input>
+                                </el-form-item>
+                            </el-form>
+                            <div slot="footer">
+                                <el-button @click="showSubmitGrades = false">取消</el-button>
+                                <el-button type="danger" @click="confirmSubmitGrades" :loading="submitLoading">确认提交</el-button>
+                            </div>
+                        </el-dialog>
+                    </div>
+
+                    <!-- 成绩统计 -->
+                    <div v-if="activeMenu === 'grade-statistics'" class="grade-statistics-page">
+                        <div class="page-header">
+                            <h3>成绩统计</h3>
+                            <el-button type="primary" @click="exportStatistics">导出统计报告</el-button>
+                        </div>
+
+                        <!-- 课程选择 -->
+                        <el-card class="filter-card">
+                            <el-form :inline="true" :model="statisticsFilter" class="filter-form">
+                                <el-form-item label="选择课程">
+                                    <el-select 
+                                        v-model="statisticsFilter.courseId" 
+                                        placeholder="请选择课程" 
+                                        @change="loadGradeStatistics"
+                                        style="width: 300px;">
+                                        <el-option
+                                            v-for="course in coursesForStudentFilter"
+                                            :key="course.id"
+                                            :label="`${course.course_code} - ${course.name}`"
+                                            :value="course.id">
+                                        </el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="学期">
+                                    <el-input v-model="statisticsFilter.semester" placeholder="如：2025春" style="width: 120px;"></el-input>
+                                </el-form-item>
+                                <el-form-item label="学年">
+                                    <el-input v-model="statisticsFilter.academic_year" placeholder="如：2024-2025" style="width: 150px;"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button type="primary" @click="loadGradeStatistics">查询</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-card>
+
+                        <!-- 统计概览 -->
+                        <el-row :gutter="20" v-if="gradeStatistics">
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-content">
+                                        <div class="stat-number">{{ gradeStatistics.total_students }}</div>
+                                        <div class="stat-label">总学生数</div>
+                                    </div>
+                                    <i class="el-icon-user stat-icon"></i>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-content">
+                                        <div class="stat-number">{{ gradeStatistics.average_score ? gradeStatistics.average_score.toFixed(1) : '--' }}</div>
+                                        <div class="stat-label">平均分</div>
+                                    </div>
+                                    <i class="el-icon-data-line stat-icon"></i>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-content">
+                                        <div class="stat-number">{{ gradeStatistics.pass_rate ? (gradeStatistics.pass_rate * 100).toFixed(1) + '%' : '--' }}</div>
+                                        <div class="stat-label">及格率</div>
+                                    </div>
+                                    <i class="el-icon-success stat-icon"></i>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-content">
+                                        <div class="stat-number">{{ gradeStatistics.excellent_rate ? (gradeStatistics.excellent_rate * 100).toFixed(1) + '%' : '--' }}</div>
+                                        <div class="stat-label">优秀率</div>
+                                    </div>
+                                    <i class="el-icon-star-on stat-icon"></i>
+                                </el-card>
+                            </el-col>
+                        </el-row>
+
+                        <!-- 成绩分布 -->
+                        <el-row :gutter="20" v-if="gradeStatistics && gradeStatistics.grade_distribution" style="margin-top: 20px;">
+                            <el-col :span="12">
+                                <el-card>
+                                    <div slot="header">
+                                        <span>等级分布</span>
+                                    </div>
+                                    <div id="gradeDistributionChart" style="height: 300px;"></div>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="12">
+                                <el-card>
+                                    <div slot="header">
+                                        <span>分数分布</span>
+                                    </div>
+                                    <div id="scoreDistributionChart" style="height: 300px;"></div>
+                                </el-card>
+                            </el-col>
+                        </el-row>
+
+                        <!-- 详细统计表格 -->
+                        <el-card style="margin-top: 20px;" v-if="gradeStatistics">
+                            <div slot="header">
+                                <span>详细统计数据</span>
+                            </div>
+                            <el-table :data="gradeStatistics.grade_distribution" style="width: 100%">
+                                <el-table-column prop="grade_level" label="等级" width="100" align="center">
+                                    <template slot-scope="scope">
+                                        <el-tag :type="getGradeLevelType(scope.row.grade_level)">
+                                            {{ scope.row.grade_level }}
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="count" label="人数" width="100" align="center"></el-table-column>
+                                <el-table-column label="占比" width="100" align="center">
+                                    <template slot-scope="scope">
+                                        {{ ((scope.row.count / gradeStatistics.total_students) * 100).toFixed(1) }}%
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="进度条" min-width="200">
+                                    <template slot-scope="scope">
+                                        <el-progress 
+                                            :percentage="Math.round((scope.row.count / gradeStatistics.total_students) * 100)"
+                                            :color="getGradeLevelColor(scope.row.grade_level)">
+                                        </el-progress>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </el-card>
+                    </div>
+
+                    <!-- 特殊申请管理 -->
+                    <div v-if="activeMenu === 'applications'" class="applications-page">
+                        <div class="page-header">
+                            <h3>特殊申请管理</h3>
+                            <div>
+                                <el-badge :value="pendingApplicationsCount" :hidden="pendingApplicationsCount === 0">
+                                    <el-button type="primary" @click="loadApplications('pending')">待处理申请</el-button>
+                                </el-badge>
+                                <el-button @click="loadApplications('all')" style="margin-left: 10px;">全部申请</el-button>
+                            </div>
+                        </div>
+
+                        <!-- 筛选条件 -->
+                        <el-card class="filter-card">
+                            <el-form :inline="true" :model="applicationFilter" class="filter-form">
+                                <el-form-item label="申请类型">
+                                    <el-select v-model="applicationFilter.type" placeholder="全部类型" clearable>
+                                        <el-option label="退课申请" value="drop"></el-option>
+                                        <el-option label="换课申请" value="transfer"></el-option>
+                                        <el-option label="补选申请" value="makeup"></el-option>
+                                        <el-option label="其他申请" value="other"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="申请状态">
+                                    <el-select v-model="applicationFilter.status" placeholder="全部状态" clearable>
+                                        <el-option label="待处理" value="pending"></el-option>
+                                        <el-option label="已批准" value="approved"></el-option>
+                                        <el-option label="已拒绝" value="rejected"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                <el-form-item label="申请人">
+                                    <el-input v-model="applicationFilter.studentName" placeholder="学生姓名或学号"></el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button type="primary" @click="loadApplications()">查询</el-button>
+                                    <el-button @click="resetApplicationFilter">重置</el-button>
+                                </el-form-item>
+                            </el-form>
+                        </el-card>
+
+                        <!-- 申请列表 -->
+                        <el-table 
+                            :data="applications" 
+                            v-loading="applicationsLoading" 
+                            style="width: 100%" 
+                            stripe
+                            @selection-change="handleApplicationSelection">
+                            <el-table-column type="selection" width="55" align="center"></el-table-column>
+                            <el-table-column prop="student_name" label="申请人" width="100" align="center"></el-table-column>
+                            <el-table-column prop="student_number" label="学号" width="120" align="center"></el-table-column>
+                            <el-table-column label="申请类型" width="100" align="center">
+                                <template slot-scope="scope">
+                                    <el-tag :type="getApplicationTypeColor(scope.row.request_type)" size="small">
+                                        {{ getApplicationTypeText(scope.row.request_type) }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="course_name" label="相关课程" min-width="150" show-overflow-tooltip>
+                                <template slot-scope="scope">
+                                    <div>{{ scope.row.course_code }} - {{ scope.row.course_name }}</div>
+                                </template>
+                            </el-table-column>
+                            <el-table-column prop="reason" label="申请原因" min-width="200" show-overflow-tooltip></el-table-column>
+                            <el-table-column prop="created_at" label="申请时间" width="150" align="center">
+                                <template slot-scope="scope">
+                                    {{ formatDateTime(scope.row.created_at) }}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="状态" width="90" align="center">
+                                <template slot-scope="scope">
+                                    <el-tag :type="getApplicationStatusColor(scope.row.status)">
+                                        {{ getApplicationStatusText(scope.row.status) }}
+                                    </el-tag>
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="180" align="center">
+                                <template slot-scope="scope">
+                                    <el-button 
+                                        v-if="scope.row.status === 'pending'"
+                                        size="mini" 
+                                        type="success" 
+                                        @click="processApplication(scope.row, 'approve')">
+                                        批准
+                                    </el-button>
+                                    <el-button 
+                                        v-if="scope.row.status === 'pending'"
+                                        size="mini" 
+                                        type="danger" 
+                                        @click="processApplication(scope.row, 'reject')">
+                                        拒绝
+                                    </el-button>
+                                    <el-button 
+                                        size="mini" 
+                                        @click="viewApplicationDetail(scope.row)">
+                                        详情
+                                    </el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+
+                        <!-- 批量操作 -->
+                        <div v-if="selectedApplications.length > 0" class="batch-operations" style="margin-top: 20px;">
+                            <el-alert
+                                :title="`已选择 ${selectedApplications.length} 个申请`"
+                                type="info"
+                                show-icon
+                                :closable="false"
+                                style="margin-bottom: 15px;">
+                            </el-alert>
+                            <el-button type="success" @click="batchProcessApplications('approve')">批量批准</el-button>
+                            <el-button type="danger" @click="batchProcessApplications('reject')">批量拒绝</el-button>
+                        </div>
+
+                        <!-- 处理申请对话框 -->
+                        <el-dialog
+                            :title="processDialogTitle"
+                            :visible.sync="showProcessDialog"
+                            width="600px">
+                            <div class="application-info">
+                                <el-row :gutter="20" v-if="currentApplication">
+                                    <el-col :span="12">
+                                        <div class="info-item">
+                                            <div class="label">申请人：</div>
+                                            <div class="value">{{ currentApplication.student_name }} ({{ currentApplication.student_number }})</div>
+                                        </div>
+                                    </el-col>
+                                    <el-col :span="12">
+                                        <div class="info-item">
+                                            <div class="label">申请类型：</div>
+                                            <div class="value">{{ getApplicationTypeText(currentApplication.application_type) }}</div>
+                                        </div>
+                                    </el-col>
+                                </el-row>
+                                <el-row :gutter="20" style="margin-top: 15px;">
+                                    <el-col :span="24">
+                                        <div class="info-item">
+                                            <div class="label">申请原因：</div>
+                                            <div class="value">{{ currentApplication ? currentApplication.reason : '' }}</div>
+                                        </div>
+                                    </el-col>
+                                </el-row>
+                            </div>
+
+                            <el-form :model="processForm" label-width="100px" style="margin-top: 20px;">
+                                <el-form-item label="处理意见" required>
+                                    <el-input
+                                        type="textarea"
+                                        v-model="processForm.comment"
+                                        :placeholder="processAction === 'approve' ? '请输入批准意见...' : '请输入拒绝原因...'"
+                                        :rows="4">
+                                    </el-input>
+                                </el-form-item>
+                            </el-form>
+
+                            <div slot="footer">
+                                <el-button @click="showProcessDialog = false">取消</el-button>
+                                <el-button 
+                                    :type="processAction === 'approve' ? 'success' : 'danger'" 
+                                    @click="confirmProcessApplication" 
+                                    :loading="processLoading">
+                                    {{ processAction === 'approve' ? '确认批准' : '确认拒绝' }}
+                                </el-button>
+                            </div>
+                        </el-dialog>
+
+                        <!-- 申请详情对话框 -->
+                        <el-dialog
+                            title="申请详情"
+                            :visible.sync="showDetailDialog"
+                            width="700px">
+                            <div v-if="currentApplication" class="application-detail">
+                                <el-descriptions :column="2" border>
+                                    <el-descriptions-item label="申请人">
+                                        {{ currentApplication.student_name }} ({{ currentApplication.student_number }})
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="申请类型">
+                                        <el-tag :type="getApplicationTypeColor(currentApplication.request_type)" size="small">
+                                            {{ getApplicationTypeText(currentApplication.request_type) }}
+                                        </el-tag>
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="相关课程">
+                                        {{ currentApplication.course_code }} - {{ currentApplication.course_name }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="申请状态">
+                                        <el-tag :type="getApplicationStatusColor(currentApplication.status)">
+                                            {{ getApplicationStatusText(currentApplication.status) }}
+                                        </el-tag>
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="申请时间" :span="2">
+                                        {{ formatDateTime(currentApplication.created_at) }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item label="申请原因" :span="2">
+                                        <div style="max-height: 120px; overflow-y: auto; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                                            {{ currentApplication.reason }}
+                                        </div>
+                                    </el-descriptions-item>
+                                    <el-descriptions-item v-if="currentApplication.status !== 'pending'" label="处理时间" :span="2">
+                                        {{ formatDateTime(currentApplication.processed_at) }}
+                                    </el-descriptions-item>
+                                    <el-descriptions-item v-if="currentApplication.teacher_comment" label="处理意见" :span="2">
+                                        <div style="max-height: 120px; overflow-y: auto; padding: 10px; background: #f5f5f5; border-radius: 4px;">
+                                            {{ currentApplication.teacher_comment }}
+                                        </div>
+                                    </el-descriptions-item>
+                                </el-descriptions>
+                            </div>
+                            <div slot="footer" class="dialog-footer">
+                                <el-button @click="showDetailDialog = false">关闭</el-button>
+                                <el-button 
+                                    v-if="currentApplication && currentApplication.status === 'pending'"
+                                    type="success" 
+                                    @click="processApplication(currentApplication, 'approve')">
+                                    批准申请
+                                </el-button>
+                                <el-button 
+                                    v-if="currentApplication && currentApplication.status === 'pending'"
+                                    type="danger" 
+                                    @click="processApplication(currentApplication, 'reject')">
+                                    拒绝申请
+                                </el-button>
+                            </div>
+                        </el-dialog>
+                    </div>
+
+                    <!-- 资质管理 -->
+                    <div v-if="activeMenu === 'qualifications'" class="qualifications-page">
+                        <div class="page-header">
+                            <h3>我的资质管理</h3>
+                            <el-button type="primary" @click="showQualificationDialog('create')" icon="el-icon-plus">
+                                申请新资质
+                            </el-button>
+                        </div>
+
+                        <!-- 资质统计 -->
+                        <el-row :gutter="20" class="stats-row">
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-item">
+                                        <div class="stat-value">{{ qualificationStats.total }}</div>
+                                        <div class="stat-label">总资质数</div>
+                                    </div>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-item">
+                                        <div class="stat-value success">{{ qualificationStats.active }}</div>
+                                        <div class="stat-label">有效资质</div>
+                                    </div>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-item">
+                                        <div class="stat-value warning">{{ qualificationStats.expired }}</div>
+                                        <div class="stat-label">已过期</div>
+                                    </div>
+                                </el-card>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-card class="stat-card">
+                                    <div class="stat-item">
+                                        <div class="stat-value info">{{ qualificationStats.pending }}</div>
+                                        <div class="stat-label">待审核</div>
+                                    </div>
+                                </el-card>
+                            </el-col>
+                        </el-row>
+
+                        <!-- 资质列表 -->
+                        <el-card class="content-card">
+                            <el-table :data="qualificationList" v-loading="qualificationLoading" style="width: 100%">
+                                <el-table-column prop="sport_category" label="体育类别" width="100" align="center"></el-table-column>
+                                <el-table-column prop="qualification_level" label="资质等级" width="80" align="center">
+                                    <template slot-scope="scope">
+                                        <el-tag :type="getLevelTagType(scope.row.qualification_level)" size="small">
+                                            {{ scope.row.qualification_level }}
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="certificate_name" label="证书名称" min-width="150" show-overflow-tooltip></el-table-column>
+                                <el-table-column prop="certificate_number" label="证书编号" width="120" align="center"></el-table-column>
+                                <el-table-column prop="issuing_authority" label="颁发机构" width="120" show-overflow-tooltip></el-table-column>
+                                <el-table-column prop="issue_date" label="颁发日期" width="100" align="center">
+                                    <template slot-scope="scope">
+                                        {{ formatDate(scope.row.issue_date) }}
+                                    </template>
+                                </el-table-column>
+                                <el-table-column prop="expire_date" label="过期日期" width="100" align="center">
+                                    <template slot-scope="scope">
+                                        {{ scope.row.expire_date ? formatDate(scope.row.expire_date) : '长期有效' }}
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="状态" width="100" align="center">
+                                    <template slot-scope="scope">
+                                        <el-tag :type="getQualificationStatusType(scope.row)" size="small">
+                                            {{ getQualificationStatusText(scope.row) }}
+                                        </el-tag>
+                                    </template>
+                                </el-table-column>
+                                <el-table-column label="操作" width="120" align="center">
+                                    <template slot-scope="scope">
+                                        <el-button size="mini" @click="viewQualification(scope.row)">查看</el-button>
+                                        <el-button size="mini" type="text" @click="downloadCertificate(scope.row)" 
+                                                  v-if="scope.row.attachment_url">下载</el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </el-card>
+
+                        <!-- 资质表单对话框 -->
+                        <el-dialog :title="qualificationDialog.title" 
+                                  :visible.sync="qualificationDialog.visible" 
+                                  width="600px">
+                            <el-form :model="qualificationForm" :rules="qualificationRules" ref="qualificationForm" label-width="120px">
+                                <el-form-item label="体育类别" prop="sport_category">
+                                    <el-select v-model="qualificationForm.sport_category" placeholder="选择体育类别" 
+                                              :disabled="qualificationDialog.mode === 'view'">
+                                        <el-option label="篮球" value="篮球"></el-option>
+                                        <el-option label="足球" value="足球"></el-option>
+                                        <el-option label="网球" value="网球"></el-option>
+                                        <el-option label="羽毛球" value="羽毛球"></el-option>
+                                        <el-option label="乒乓球" value="乒乓球"></el-option>
+                                        <el-option label="游泳" value="游泳"></el-option>
+                                        <el-option label="武术" value="武术"></el-option>
+                                        <el-option label="健美操" value="健美操"></el-option>
+                                        <el-option label="瑜伽" value="瑜伽"></el-option>
+                                        <el-option label="田径" value="田径"></el-option>
+                                        <el-option label="其他" value="其他"></el-option>
+                                    </el-select>
+                                </el-form-item>
+                                
+                                <el-form-item label="资质等级" prop="qualification_level">
+                                    <el-select v-model="qualificationForm.qualification_level" placeholder="选择资质等级" 
+                                              :disabled="qualificationDialog.mode === 'view'">
+                                        <el-option label="国家级" value="国家级"></el-option>
+                                        <el-option label="省级" value="省级"></el-option>
+                                        <el-option label="市级" value="市级"></el-option>
+                                        <el-option label="校级" value="校级"></el-option>
+                                        <el-option label="其他" value="其他"></el-option>
+                                    </el-select>
+                                </el-form-item>
+
+                                <el-form-item label="证书名称" prop="certificate_name">
+                                    <el-input v-model="qualificationForm.certificate_name" placeholder="请输入证书名称" 
+                                             :disabled="qualificationDialog.mode === 'view'"></el-input>
+                                </el-form-item>
+
+                                <el-form-item label="证书编号" prop="certificate_number">
+                                    <el-input v-model="qualificationForm.certificate_number" placeholder="请输入证书编号" 
+                                             :disabled="qualificationDialog.mode === 'view'"></el-input>
+                                </el-form-item>
+
+                                <el-form-item label="颁发机构" prop="issuing_authority">
+                                    <el-input v-model="qualificationForm.issuing_authority" placeholder="请输入颁发机构" 
+                                             :disabled="qualificationDialog.mode === 'view'"></el-input>
+                                </el-form-item>
+
+                                <el-form-item label="颁发日期" prop="issue_date">
+                                    <el-date-picker
+                                        v-model="qualificationForm.issue_date"
+                                        type="date"
+                                        placeholder="选择颁发日期"
+                                        value-format="yyyy-MM-dd"
+                                        :disabled="qualificationDialog.mode === 'view'"
+                                        style="width: 100%">
+                                    </el-date-picker>
+                                </el-form-item>
+
+                                <el-form-item label="过期日期">
+                                    <el-date-picker
+                                        v-model="qualificationForm.expire_date"
+                                        type="date"
+                                        placeholder="选择过期日期（留空表示长期有效）"
+                                        value-format="yyyy-MM-dd"
+                                        :disabled="qualificationDialog.mode === 'view'"
+                                        style="width: 100%">
+                                    </el-date-picker>
+                                </el-form-item>
+
+                                <el-form-item label="资质描述">
+                                    <el-input
+                                        v-model="qualificationForm.description"
+                                        type="textarea"
+                                        :rows="3"
+                                        placeholder="请输入资质描述"
+                                        :disabled="qualificationDialog.mode === 'view'">
+                                    </el-input>
+                                </el-form-item>
+
+                                <el-form-item label="附件URL">
+                                    <el-input v-model="qualificationForm.attachment_url" placeholder="请输入附件URL（可选）" 
+                                             :disabled="qualificationDialog.mode === 'view'"></el-input>
+                                </el-form-item>
+
+                                <el-form-item label="审核状态" v-if="qualificationDialog.mode === 'view'">
+                                    <el-tag :type="getVerifiedStatusType(qualificationForm.verified_status)">
+                                        {{ getVerifiedStatusText(qualificationForm.verified_status) }}
+                                    </el-tag>
+                                    <span v-if="qualificationForm.verification_notes" class="verification-notes">
+                                        {{ qualificationForm.verification_notes }}
+                                    </span>
+                                </el-form-item>
+                            </el-form>
+                            <div slot="footer" class="dialog-footer">
+                                <el-button @click="qualificationDialog.visible = false">
+                                    {{ qualificationDialog.mode === 'view' ? '关闭' : '取消' }}
+                                </el-button>
+                                <el-button type="primary" @click="saveQualification" v-if="qualificationDialog.mode === 'create'"
+                                          :loading="qualificationDialog.loading">
+                                    提交申请
+                                </el-button>
+                            </div>
+                        </el-dialog>
+                    </div>
+                </el-main>
+            </el-container>
+
+            <!-- 个人信息对话框 -->
+            <el-dialog
+                title="个人信息"
+                :visible.sync="showProfileDialogVisible"
+                width="600px">
+                <el-form :model="profileForm" :rules="profileRules" ref="profileForm" label-width="100px">
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="姓名" prop="name">
+                                <el-input v-model="profileForm.name"></el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="职称" prop="title">
+                                <el-input v-model="profileForm.title"></el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-form-item label="所属院系" prop="department">
+                        <el-input v-model="profileForm.department"></el-input>
+                    </el-form-item>
+                    <el-row :gutter="20">
+                        <el-col :span="12">
+                            <el-form-item label="联系电话" prop="phone">
+                                <el-input v-model="profileForm.phone"></el-input>
+                            </el-form-item>
+                        </el-col>
+                        <el-col :span="12">
+                            <el-form-item label="邮箱" prop="email">
+                                <el-input v-model="profileForm.email"></el-input>
+                            </el-form-item>
+                        </el-col>
+                    </el-row>
+                    <el-form-item label="个人简介">
+                        <el-input
+                            type="textarea"
+                            v-model="profileForm.introduction"
+                            placeholder="请输入个人简介"
+                            :rows="4">
+                        </el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer">
+                    <el-button @click="showProfileDialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="saveProfile" :loading="profileLoading">保存</el-button>
+                </div>
+            </el-dialog>
+
+            <!-- 修改密码对话框 -->
+            <el-dialog
+                title="修改密码"
+                :visible.sync="showPasswordDialogVisible"
+                width="400px">
+                <el-form :model="passwordForm" :rules="passwordRules" ref="passwordForm" label-width="100px">
+                    <el-form-item label="当前密码" prop="currentPassword">
+                        <el-input v-model="passwordForm.currentPassword" type="password" show-password></el-input>
+                    </el-form-item>
+                    <el-form-item label="新密码" prop="newPassword">
+                        <el-input v-model="passwordForm.newPassword" type="password" show-password></el-input>
+                    </el-form-item>
+                    <el-form-item label="确认密码" prop="confirmPassword">
+                        <el-input v-model="passwordForm.confirmPassword" type="password" show-password></el-input>
+                    </el-form-item>
+                </el-form>
+                <div slot="footer">
+                    <el-button @click="showPasswordDialogVisible = false">取消</el-button>
+                    <el-button type="primary" @click="changePassword" :loading="passwordLoading">确认修改</el-button>
+                </div>
+            </el-dialog>
+        </div>
+    </div>
+
+    <!-- 引入自定义JavaScript -->
+    <script src="/js/teacher.js"></script>
+</body>
+</html>

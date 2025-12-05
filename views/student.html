@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>体育选课系统 - 学生端</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="/css/main.css">
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div id="app">
+        <!-- 顶部导航栏 -->
+        <el-header class="main-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <i class="el-icon-trophy" style="font-size: 24px; color: #409EFF; margin-right: 8px;"></i>
+                    <h2 class="system-title">体育选课系统 - 学生端</h2>
+                </div>
+                
+                <div class="nav-section">
+                    <el-menu 
+                        :default-active="activeMenu" 
+                        class="header-menu" 
+                        mode="horizontal"
+                        @select="handleMenuSelect"
+                        background-color="transparent"
+                        text-color="#333"
+                        active-text-color="#409EFF">
+                        <el-menu-item index="courses">课程浏览</el-menu-item>
+                        <el-menu-item index="my-selections" v-if="isLoggedIn">我的选课</el-menu-item>
+                        <el-menu-item index="favorites" v-if="isLoggedIn">收藏课程</el-menu-item>
+                        <el-menu-item index="history" v-if="isLoggedIn">选课历史</el-menu-item>
+                    </el-menu>
+                </div>
+
+                <div class="user-section">
+                    <div v-if="!isLoggedIn" class="login-buttons">
+                        <el-button type="primary" @click="showLoginDialog = true">登录</el-button>
+                    </div>
+                    <div v-else class="user-info">
+                        <el-dropdown @command="handleUserCommand">
+                            <span class="user-dropdown">
+                                <i class="el-icon-user-solid"></i>
+                                {{ userInfo.real_name || userInfo.username }}
+                                <i class="el-icon-arrow-down"></i>
+                            </span>
+                            <el-dropdown-menu slot="dropdown">
+                                <el-dropdown-item command="profile">个人信息</el-dropdown-item>
+                                <el-dropdown-item command="password">修改密码</el-dropdown-item>
+                                <el-dropdown-item divided command="logout">退出登录</el-dropdown-item>
+                            </el-dropdown-menu>
+                        </el-dropdown>
+                    </div>
+                </div>
+            </div>
+        </el-header>
+
+        <!-- 主要内容区域 -->
+        <el-main class="main-content">
+            <!-- 课程浏览页面 -->
+            <div v-show="activeMenu === 'courses'" class="page-container">
+                <div class="page-header">
+                    <h3>课程浏览</h3>
+                    <p class="page-description">浏览所有可选的体育课程，支持多种筛选条件</p>
+                </div>
+
+                <!-- 筛选条件 -->
+                <el-card class="filter-card" shadow="never">
+                    <div class="filter-section">
+                        <el-row :gutter="20">
+                            <el-col :span="6">
+                                <el-select v-model="courseFilters.category_id" placeholder="选择体育类别" clearable>
+                                    <el-option
+                                        v-for="category in categories"
+                                        :key="category.id"
+                                        :label="category.name"
+                                        :value="category.id">
+                                    </el-option>
+                                </el-select>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-select v-model="courseFilters.teacher_id" placeholder="选择教师" clearable>
+                                    <el-option
+                                        v-for="teacher in teachers"
+                                        :key="teacher.id"
+                                        :label="teacher.name"
+                                        :value="teacher.id">
+                                    </el-option>
+                                </el-select>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-select v-model="courseFilters.day_of_week" placeholder="选择上课时间" clearable>
+                                    <el-option label="周一" :value="1"></el-option>
+                                    <el-option label="周二" :value="2"></el-option>
+                                    <el-option label="周三" :value="3"></el-option>
+                                    <el-option label="周四" :value="4"></el-option>
+                                    <el-option label="周五" :value="5"></el-option>
+                                    <el-option label="周六" :value="6"></el-option>
+                                    <el-option label="周日" :value="7"></el-option>
+                                </el-select>
+                            </el-col>
+                            <el-col :span="6">
+                                <el-input
+                                    v-model="courseFilters.search"
+                                    placeholder="搜索课程名称或教师"
+                                    prefix-icon="el-icon-search"
+                                    clearable>
+                                </el-input>
+                            </el-col>
+                        </el-row>
+                        <div class="filter-actions">
+                            <el-button type="primary" @click="searchCourses">搜索</el-button>
+                            <el-button @click="resetFilters">重置</el-button>
+                        </div>
+                    </div>
+                </el-card>
+
+                <!-- 课程列表 -->
+                <div class="course-list" v-loading="coursesLoading">
+                    <el-row :gutter="20">
+                        <el-col :span="8" v-for="course in courses" :key="course.id">
+                            <el-card class="course-card" shadow="hover" @click.native="showCourseDetail(course)">
+                                <div class="course-header">
+                                    <div class="course-title">
+                                        <h4>{{ course.name }}</h4>
+                                        <el-tag :type="getCourseStatusType(course.selection_status)" size="mini">
+                                            {{ getCourseStatusText(course.selection_status) }}
+                                        </el-tag>
+                                    </div>
+                                    <div class="course-actions">
+                                        <el-button 
+                                            v-if="isLoggedIn"
+                                            :icon="course.is_favorited ? 'el-icon-star-on' : 'el-icon-star-off'"
+                                            :type="course.is_favorited ? 'warning' : 'info'"
+                                            size="mini"
+                                            circle
+                                            @click.stop="toggleFavorite(course)">
+                                        </el-button>
+                                    </div>
+                                </div>
+                                
+                                <div class="course-info">
+                                    <div class="info-item">
+                                        <i class="el-icon-user"></i>
+                                        <span>{{ course.teacher_name }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <i class="el-icon-location"></i>
+                                        <span>{{ course.venue_name }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <i class="el-icon-time"></i>
+                                        <span>{{ getWeekDayText(course.day_of_week) }} {{ course.start_time }}-{{ course.end_time }}</span>
+                                    </div>
+                                    <div class="info-item">
+                                        <i class="el-icon-medal"></i>
+                                        <span>{{ course.credits }}学分</span>
+                                    </div>
+                                </div>
+
+                                <div class="course-capacity">
+                                    <el-progress 
+                                        :percentage="Math.round((course.enrolled_count / course.capacity) * 100)"
+                                        :color="getCapacityColor(course.enrolled_count, course.capacity)"
+                                        :show-text="false"
+                                        :stroke-width="6">
+                                    </el-progress>
+                                    <span class="capacity-text">{{ course.enrolled_count }}/{{ course.capacity }}</span>
+                                </div>
+
+                                <div class="course-footer">
+                                    <el-button 
+                                        v-if="isLoggedIn && canSelectCourse(course)"
+                                        type="primary" 
+                                        size="small"
+                                        @click.stop="selectCourse(course)"
+                                        :disabled="course.selection_status !== 'available'">
+                                        {{ getSelectionButtonText(course) }}
+                                    </el-button>
+                                    <el-button 
+                                        v-else-if="isLoggedIn && course.user_selection_status"
+                                        :type="getSelectionStatusType(course.user_selection_status)"
+                                        size="small"
+                                        disabled>
+                                        {{ getSelectionStatusText(course.user_selection_status) }}
+                                    </el-button>
+                                    <el-button v-else-if="!isLoggedIn" type="info" size="small" disabled>
+                                        请先登录
+                                    </el-button>
+                                </div>
+                            </el-card>
+                        </el-col>
+                    </el-row>
+
+                    <!-- 分页 -->
+                    <div class="pagination-container" v-if="coursePagination.total > 0">
+                        <el-pagination
+                            @size-change="handleSizeChange"
+                            @current-change="handleCurrentChange"
+                            :current-page="coursePagination.current_page"
+                            :page-sizes="[9, 18, 36]"
+                            :page-size="coursePagination.per_page"
+                            layout="total, sizes, prev, pager, next, jumper"
+                            :total="coursePagination.total">
+                        </el-pagination>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 我的选课页面 -->
+            <div v-show="activeMenu === 'my-selections'" class="page-container">
+                <div class="page-header">
+                    <h3>我的选课</h3>
+                    <p class="page-description">查看和管理你的选课情况</p>
+                </div>
+
+                <el-tabs v-model="selectionTab" @tab-click="handleSelectionTabClick">
+                    <el-tab-pane label="全部" name="all"></el-tab-pane>
+                    <el-tab-pane label="已选中" name="selected"></el-tab-pane>
+                    <el-tab-pane label="等待中" name="pending"></el-tab-pane>
+                    <el-tab-pane label="抽签中" name="lottery"></el-tab-pane>
+                    <el-tab-pane label="已退选" name="dropped"></el-tab-pane>
+                </el-tabs>
+
+                <div class="selection-list" v-loading="selectionsLoading">
+                    <el-table :data="mySelections" style="width: 100%" :fit="true" header-align="center">
+                        <el-table-column prop="course_name" label="课程名称" min-width="160" show-overflow-tooltip align="center"></el-table-column>
+                        <el-table-column prop="category_name" label="类别" width="80" align="center"></el-table-column>
+                        <el-table-column prop="teacher_name" label="教师" width="90" align="center"></el-table-column>
+                        <el-table-column prop="venue_name" label="场地" min-width="120" show-overflow-tooltip align="center"></el-table-column>
+                        <el-table-column label="上课时间" width="140" align="center">
+                            <template slot-scope="scope">
+                                {{ getWeekDayText(scope.row.day_of_week) }} {{ formatTime(scope.row.start_time) }}-{{ formatTime(scope.row.end_time) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="credits" label="学分" width="60" align="center"></el-table-column>
+                        <el-table-column label="状态" width="90" align="center">
+                            <template slot-scope="scope">
+                                <el-tag :type="getSelectionStatusType(scope.row.status)" size="small">
+                                    {{ getSelectionStatusText(scope.row.status) }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="选课时间" width="140" align="center">
+                            <template slot-scope="scope">
+                                {{ formatDateTimeShort(scope.row.selection_time) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" width="90" align="center" fixed="right">
+                            <template slot-scope="scope">
+                                <el-button 
+                                    v-if="scope.row.status === 'selected' || scope.row.status === 'pending' || scope.row.status === 'lottery'"
+                                    type="danger" 
+                                    size="mini"
+                                    @click="dropCourse(scope.row)">
+                                    退选
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+
+            <!-- 收藏课程页面 -->
+            <div v-show="activeMenu === 'favorites'" class="page-container">
+                <div class="page-header">
+                    <h3>收藏课程</h3>
+                    <p class="page-description">管理你收藏的心仪课程</p>
+                </div>
+
+                <div class="favorite-list" v-loading="favoritesLoading">
+                    <el-table :data="favoriteCourses" style="width: 100%" :fit="true" header-align="center">
+                        <el-table-column prop="name" label="课程名称" min-width="150" show-overflow-tooltip align="center"></el-table-column>
+                        <el-table-column prop="category_name" label="类别" width="80" align="center"></el-table-column>
+                        <el-table-column prop="teacher_name" label="教师" width="90" align="center"></el-table-column>
+                        <el-table-column prop="venue_name" label="场地" min-width="110" show-overflow-tooltip align="center"></el-table-column>
+                        <el-table-column label="上课时间" width="140" align="center">
+                            <template slot-scope="scope">
+                                {{ getWeekDayText(scope.row.day_of_week) }} {{ formatTime(scope.row.start_time) }}-{{ formatTime(scope.row.end_time) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="剩余名额" width="90" align="center">
+                            <template slot-scope="scope">
+                                {{ scope.row.remaining_slots }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="收藏时间" width="140" align="center">
+                            <template slot-scope="scope">
+                                {{ formatDateTimeShort(scope.row.favorite_time) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column label="操作" width="160" align="center" fixed="right">
+                            <template slot-scope="scope">
+                                <el-button 
+                                    type="primary" 
+                                    size="mini"
+                                    @click="selectCourse(scope.row)"
+                                    :disabled="scope.row.selection_status !== 'available'">
+                                    选课
+                                </el-button>
+                                <el-button 
+                                    type="warning" 
+                                    size="mini"
+                                    @click="toggleFavorite(scope.row)">
+                                    取消收藏
+                                </el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+
+            <!-- 选课历史页面 -->
+            <div v-show="activeMenu === 'history'" class="page-container">
+                <div class="page-header">
+                    <h3>选课历史</h3>
+                    <p class="page-description">查看你的选课操作记录</p>
+                </div>
+
+                <div class="history-list" v-loading="historyLoading">
+                    <el-table :data="selectionHistory" style="width: 100%" :fit="true" header-align="center">
+                        <el-table-column prop="course_name" label="课程名称" min-width="180" show-overflow-tooltip align="center"></el-table-column>
+                        <el-table-column prop="category_name" label="类别" width="90" align="center"></el-table-column>
+                        <el-table-column prop="teacher_name" label="教师" width="100" align="center"></el-table-column>
+                        <el-table-column label="操作类型" width="100" align="center">
+                            <template slot-scope="scope">
+                                <el-tag :type="getActionType(scope.row.action)" size="small">
+                                    {{ getActionText(scope.row.action) }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column prop="semester" label="学期" width="90" align="center"></el-table-column>
+                        <el-table-column prop="academic_year" label="学年" width="110" align="center"></el-table-column>
+                        <el-table-column label="操作时间" width="140" align="center">
+                            <template slot-scope="scope">
+                                {{ formatDateTimeShort(scope.row.action_time) }}
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
+        </el-main>
+
+        <!-- 登录对话框 -->
+        <el-dialog title="用户登录" :visible.sync="showLoginDialog" width="400px">
+            <el-form :model="loginForm" :rules="loginRules" ref="loginForm" label-width="80px">
+                <el-form-item label="用户名" prop="username">
+                    <el-input v-model="loginForm.username" placeholder="请输入用户名或学号"></el-input>
+                </el-form-item>
+                <el-form-item label="密码" prop="password">
+                    <el-input type="password" v-model="loginForm.password" placeholder="请输入密码" show-password></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="showLoginDialog = false">取消</el-button>
+                <el-button type="primary" @click="handleLogin" :loading="loginLoading">登录</el-button>
+            </div>
+        </el-dialog>
+
+        <!-- 课程详情对话框 -->
+        <el-dialog title="课程详情" :visible.sync="showCourseDetailDialog" width="600px">
+            <div v-if="selectedCourse" class="course-detail">
+                <el-descriptions :column="2" border>
+                    <el-descriptions-item label="课程名称">{{ selectedCourse.name }}</el-descriptions-item>
+                    <el-descriptions-item label="课程代码">{{ selectedCourse.course_code }}</el-descriptions-item>
+                    <el-descriptions-item label="体育类别">{{ selectedCourse.category_name }}</el-descriptions-item>
+                    <el-descriptions-item label="学分">{{ selectedCourse.credits }}</el-descriptions-item>
+                    <el-descriptions-item label="任课教师">{{ selectedCourse.teacher_name }}</el-descriptions-item>
+                    <el-descriptions-item label="教师职称">{{ selectedCourse.teacher_title }}</el-descriptions-item>
+                    <el-descriptions-item label="上课场地">{{ selectedCourse.venue_name }}</el-descriptions-item>
+                    <el-descriptions-item label="场地位置">{{ selectedCourse.venue_location }}</el-descriptions-item>
+                    <el-descriptions-item label="上课时间">
+                        {{ getWeekDayText(selectedCourse.day_of_week) }} {{ selectedCourse.start_time }}-{{ selectedCourse.end_time }}
+                    </el-descriptions-item>
+                    <el-descriptions-item label="上课周次">{{ selectedCourse.weeks }}</el-descriptions-item>
+                    <el-descriptions-item label="课程容量">{{ selectedCourse.capacity }}人</el-descriptions-item>
+                    <el-descriptions-item label="已选人数">{{ selectedCourse.enrolled_count }}人</el-descriptions-item>
+                </el-descriptions>
+                
+                <div class="course-detail-section" v-if="selectedCourse.description">
+                    <h4>课程描述</h4>
+                    <p>{{ selectedCourse.description }}</p>
+                </div>
+                
+                <div class="course-detail-section" v-if="selectedCourse.syllabus">
+                    <h4>教学大纲</h4>
+                    <p>{{ selectedCourse.syllabus }}</p>
+                </div>
+                
+                <div class="course-detail-section" v-if="selectedCourse.assessment_method">
+                    <h4>考核方式</h4>
+                    <p>{{ selectedCourse.assessment_method }}</p>
+                </div>
+                
+                <div class="course-detail-section" v-if="selectedCourse.requirements">
+                    <h4>选课要求</h4>
+                    <p>{{ selectedCourse.requirements }}</p>
+                </div>
+            </div>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="showCourseDetailDialog = false">关闭</el-button>
+                <el-button 
+                    v-if="isLoggedIn && canSelectCourse(selectedCourse)"
+                    type="primary" 
+                    @click="selectCourse(selectedCourse)"
+                    :disabled="selectedCourse && selectedCourse.selection_status !== 'available'">
+                    {{ getSelectionButtonText(selectedCourse) }}
+                </el-button>
+            </div>
+        </el-dialog>
+
+        <!-- 个人信息对话框 -->
+        <el-dialog title="个人信息" :visible.sync="showProfileDialog" width="600px">
+            <el-form :model="profileForm" :rules="profileRules" ref="profileForm" label-width="100px">
+                <el-form-item label="学号">
+                    <el-input v-model="profileForm.student_id" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="用户名">
+                    <el-input v-model="profileForm.username" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="真实姓名" prop="real_name">
+                    <el-input v-model="profileForm.real_name"></el-input>
+                </el-form-item>
+                <el-form-item label="性别" prop="gender">
+                    <el-radio-group v-model="profileForm.gender">
+                        <el-radio label="male">男</el-radio>
+                        <el-radio label="female">女</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+                <el-form-item label="邮箱" prop="email">
+                    <el-input v-model="profileForm.email" placeholder="请输入邮箱"></el-input>
+                </el-form-item>
+                <el-form-item label="手机号" prop="phone">
+                    <el-input v-model="profileForm.phone" placeholder="请输入手机号"></el-input>
+                </el-form-item>
+                <el-form-item label="年级">
+                    <el-input v-model="profileForm.grade" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="专业">
+                    <el-input v-model="profileForm.major" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="班级">
+                    <el-input v-model="profileForm.class_name" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="已选学分">
+                    <el-input :value="profileForm.total_credits + ' / ' + profileForm.credit_limit" disabled></el-input>
+                </el-form-item>
+                <el-form-item label="已选课程数">
+                    <el-input :value="profileForm.selected_courses_count + ' 门'" disabled></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="showProfileDialog = false">取消</el-button>
+                <el-button type="primary" @click="handleUpdateProfile" :loading="profileLoading">保存</el-button>
+            </div>
+        </el-dialog>
+
+        <!-- 修改密码对话框 -->
+        <el-dialog title="修改密码" :visible.sync="showPasswordDialog" width="450px">
+            <el-form :model="passwordForm" :rules="passwordRules" ref="passwordForm" label-width="100px">
+                <el-form-item label="旧密码" prop="oldPassword">
+                    <el-input type="password" v-model="passwordForm.oldPassword" placeholder="请输入旧密码" show-password></el-input>
+                </el-form-item>
+                <el-form-item label="新密码" prop="newPassword">
+                    <el-input type="password" v-model="passwordForm.newPassword" placeholder="请输入新密码" show-password></el-input>
+                </el-form-item>
+                <el-form-item label="确认密码" prop="confirmPassword">
+                    <el-input type="password" v-model="passwordForm.confirmPassword" placeholder="请再次输入新密码" show-password></el-input>
+                </el-form-item>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="showPasswordDialog = false">取消</el-button>
+                <el-button type="primary" @click="handleChangePassword" :loading="passwordLoading">确定修改</el-button>
+            </div>
+        </el-dialog>
+    </div>
+
+    <!-- 引入Vue和ElementUI -->
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>

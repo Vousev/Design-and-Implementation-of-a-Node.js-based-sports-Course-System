@@ -1,0 +1,696 @@
+/* 批量操作样式 */
+
+/* 批量操作容器 */
+.batch-operation-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.batch-operation-panel {
+    background: white;
+    border-top: 1px solid #e0e0e0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(100%);
+    transition: transform 0.3s ease;
+    pointer-events: auto;
+}
+
+.batch-operation-panel.show {
+    transform: translateY(0);
+}
+
+.batch-operation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+.selected-count {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #333;
+    font-weight: 500;
+}
+
+.selected-count i {
+    color: #409EFF;
+    font-size: 16px;
+}
+
+.batch-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.batch-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    background: #f5f7fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    color: #666;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.batch-action-btn:hover {
+    background: #409EFF;
+    color: white;
+    border-color: #409EFF;
+}
+
+.batch-operation-content {
+    padding: 16px 20px;
+}
+
+.operation-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.operation-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #409EFF;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.operation-btn:hover {
+    background: #66b1ff;
+    transform: translateY(-1px);
+}
+
+.operation-btn:active {
+    transform: translateY(0);
+}
+
+.operation-btn:disabled {
+    background: #c0c4cc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.operation-btn i {
+    font-size: 14px;
+}
+
+/* 表格批量操作 */
+.batch-select-all {
+    margin: 0;
+}
+
+.batch-checkbox {
+    margin: 0;
+}
+
+/* 卡片批量操作 */
+.card-checkbox {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+}
+
+.card-checkbox .batch-checkbox {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
+
+/* 批量操作进度 */
+.batch-progress {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    min-width: 300px;
+    z-index: 1001;
+}
+
+.batch-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.batch-progress-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+}
+
+.batch-progress-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.batch-progress-content {
+    margin-bottom: 16px;
+}
+
+.batch-progress-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.batch-progress-item:last-child {
+    margin-bottom: 0;
+}
+
+.batch-progress-name {
+    flex: 1;
+    font-size: 13px;
+    color: #666;
+    margin-right: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.batch-progress-bar {
+    width: 80px;
+    height: 4px;
+    background: #f0f0f0;
+    border-radius: 2px;
+    overflow: hidden;
+    margin-right: 8px;
+}
+
+.batch-progress-fill {
+    height: 100%;
+    background: #409EFF;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.batch-progress-text {
+    font-size: 11px;
+    color: #999;
+    min-width: 30px;
+    text-align: right;
+}
+
+.batch-progress-summary {
+    text-align: center;
+    font-size: 14px;
+    color: #333;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+}
+
+/* 通知对话框 */
+.notification-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.notification-dialog-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+.notification-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+.notification-dialog-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #333;
+}
+
+.notification-dialog-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.notification-dialog-close:hover {
+    background: #f5f7fa;
+    color: #666;
+}
+
+.notification-dialog-body {
+    padding: 20px;
+}
+
+.form-group {
+    margin-bottom: 16px;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #409EFF;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+.notification-dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px;
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+/* 批量操作结果 */
+.batch-result {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    min-width: 300px;
+    z-index: 1001;
+    animation: slideInRight 0.3s ease-out;
+}
+
+.batch-result.success {
+    border-left: 4px solid #67C23A;
+}
+
+.batch-result.error {
+    border-left: 4px solid #F56C6C;
+}
+
+.batch-result.warning {
+    border-left: 4px solid #E6A23C;
+}
+
+.batch-result-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.batch-result-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+}
+
+.batch-result-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 2px;
+    border-radius: 2px;
+}
+
+.batch-result-content {
+    font-size: 13px;
+    color: #666;
+    line-height: 1.4;
+}
+
+.batch-result-details {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #999;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+    .batch-operation-panel {
+        padding: 0;
+    }
+    
+    .batch-operation-header {
+        padding: 10px 15px;
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    
+    .batch-actions {
+        justify-content: center;
+    }
+    
+    .batch-operation-content {
+        padding: 12px 15px;
+    }
+    
+    .operation-buttons {
+        flex-direction: column;
+    }
+    
+    .operation-btn {
+        justify-content: center;
+        padding: 10px 16px;
+        font-size: 14px;
+    }
+    
+    .batch-progress {
+        width: 90%;
+        min-width: auto;
+    }
+    
+    .notification-dialog-content {
+        width: 95%;
+        max-height: 90vh;
+    }
+    
+    .notification-dialog-header,
+    .notification-dialog-body,
+    .notification-dialog-footer {
+        padding: 15px;
+    }
+    
+    .batch-result {
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
+    
+    .card-checkbox {
+        top: 4px;
+        right: 4px;
+    }
+    
+    .card-checkbox .batch-checkbox {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+/* 动画效果 */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.batch-operation-panel {
+    animation: slideInUp 0.3s ease-out;
+}
+
+/* 批量操作状态指示器 */
+.batch-status-indicator {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #409EFF;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 12px;
+    z-index: 1001;
+    animation: fadeInDown 0.3s ease-out;
+}
+
+@keyframes fadeInDown {
+    from {
+        transform: translateX(-50%) translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* 批量操作确认对话框 */
+.batch-confirm-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.batch-confirm-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 400px;
+    width: 90%;
+    overflow: hidden;
+}
+
+.batch-confirm-header {
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+.batch-confirm-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    margin: 0;
+}
+
+.batch-confirm-body {
+    padding: 20px;
+}
+
+.batch-confirm-message {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.batch-confirm-details {
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #666;
+}
+
+.batch-confirm-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px;
+    border-top: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+/* 批量操作历史 */
+.batch-history {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.batch-history-content {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+.batch-history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    background: #fafafa;
+}
+
+.batch-history-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: #333;
+    margin: 0;
+}
+
+.batch-history-close {
+    background: none;
+    border: none;
+    color: #999;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.batch-history-body {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.batch-history-item {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.batch-history-item:hover {
+    border-color: #409EFF;
+    background: #f8f9fa;
+}
+
+.batch-history-item:last-child {
+    margin-bottom: 0;
+}
+
+.batch-history-icon {
+    margin-right: 12px;
+    font-size: 20px;
+    color: #409EFF;
+}
+
+.batch-history-info {
+    flex: 1;
+}
+
+.batch-history-operation {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.batch-history-details {
+    font-size: 12px;
+    color: #666;
+}
+
+.batch-history-status {
+    margin-left: 12px;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.batch-history-status.success {
+    background: #f0f9ff;
+    color: #67C23A;
+}
+
+.batch-history-status.error {
+    background: #fef0f0;
+    color: #F56C6C;
+}
+
+.batch-history-status.pending {
+    background: #fff7e6;
+    color: #E6A23C;
+}

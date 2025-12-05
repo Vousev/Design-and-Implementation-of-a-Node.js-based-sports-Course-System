@@ -1,0 +1,474 @@
+/* 移动端优化样式 */
+
+/* 移动端基础样式 */
+@media (max-width: 768px) {
+    /* 顶部导航栏移动端优化 */
+    .main-header {
+        height: 60px !important;
+        line-height: 60px;
+        padding: 0 10px;
+    }
+    
+    .header-content {
+        padding: 0 10px;
+    }
+    
+    .system-title {
+        font-size: 16px;
+        margin-left: 5px;
+    }
+    
+    .logo-section i {
+        font-size: 20px;
+    }
+    
+    /* 移动端菜单优化 */
+    .header-menu {
+        display: none;
+    }
+    
+    .mobile-menu-btn {
+        display: block;
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 10px;
+    }
+    
+    .mobile-menu {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        background: white;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        z-index: 999;
+        display: none;
+    }
+    
+    .mobile-menu.show {
+        display: block;
+    }
+    
+    .mobile-menu-item {
+        display: block;
+        padding: 15px 20px;
+        border-bottom: 1px solid #eee;
+        color: #333;
+        text-decoration: none;
+        font-size: 16px;
+    }
+    
+    .mobile-menu-item:hover {
+        background: #f5f7fa;
+        color: #409EFF;
+    }
+    
+    /* 主容器移动端优化 */
+    .main-container {
+        padding: 10px;
+    }
+    
+    /* 卡片布局移动端优化 */
+    .course-list .el-row {
+        margin: 0 -5px;
+    }
+    
+    .course-list .el-col {
+        padding: 0 5px;
+        margin-bottom: 10px;
+    }
+    
+    .course-card {
+        margin-bottom: 10px;
+    }
+    
+    /* 筛选条件移动端优化 */
+    .filter-card {
+        margin-bottom: 15px;
+    }
+    
+    .filter-section .el-row {
+        margin: 0 -5px;
+    }
+    
+    .filter-section .el-col {
+        padding: 0 5px;
+        margin-bottom: 10px;
+    }
+    
+    .filter-actions {
+        text-align: center;
+        margin-top: 15px;
+    }
+    
+    .filter-actions .el-button {
+        width: 48%;
+        margin: 0 1%;
+    }
+    
+    /* 表格移动端优化 */
+    .el-table {
+        font-size: 12px;
+    }
+    
+    .el-table .el-table__header th {
+        padding: 8px 4px;
+        font-size: 12px;
+    }
+    
+    .el-table .el-table__body td {
+        padding: 8px 4px;
+        font-size: 12px;
+    }
+    
+    /* 表单移动端优化 */
+    .el-form-item__label {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    
+    .el-input__inner,
+    .el-textarea__inner {
+        font-size: 14px;
+    }
+    
+    /* 对话框移动端优化 */
+    .el-dialog {
+        width: 95% !important;
+        margin: 5vh auto !important;
+    }
+    
+    .el-dialog__body {
+        padding: 15px;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    /* 分页移动端优化 */
+    .el-pagination {
+        text-align: center;
+        margin-top: 15px;
+    }
+    
+    .el-pagination .el-pager li {
+        min-width: 30px;
+        height: 30px;
+        line-height: 30px;
+        font-size: 12px;
+    }
+    
+    /* 按钮组移动端优化 */
+    .el-button-group .el-button {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    /* 标签移动端优化 */
+    .el-tag {
+        font-size: 11px;
+        padding: 2px 6px;
+    }
+    
+    /* 侧边栏移动端优化 */
+    .sidebar {
+        width: 100% !important;
+        position: fixed;
+        top: 60px;
+        left: -100%;
+        height: calc(100vh - 60px);
+        z-index: 998;
+        transition: left 0.3s ease;
+    }
+    
+    .sidebar.show {
+        left: 0;
+    }
+    
+    .sidebar-overlay {
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 997;
+        display: none;
+    }
+    
+    .sidebar-overlay.show {
+        display: block;
+    }
+    
+    /* 统计卡片移动端优化 */
+    .stats-grid .el-col {
+        margin-bottom: 10px;
+    }
+    
+    .stat-card {
+        padding: 15px;
+        text-align: center;
+    }
+    
+    .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .stat-label {
+        font-size: 12px;
+        color: #666;
+    }
+    
+    /* 图表容器移动端优化 */
+    .chart-container {
+        height: 300px;
+        margin: 15px 0;
+    }
+    
+    /* 消息通知移动端优化 */
+    .notification-item {
+        padding: 12px;
+        margin-bottom: 8px;
+        border-radius: 6px;
+        font-size: 14px;
+    }
+    
+    .notification-time {
+        font-size: 11px;
+        color: #999;
+        margin-top: 4px;
+    }
+    
+    /* 文件上传移动端优化 */
+    .upload-dragger {
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .upload-dragger .el-icon-upload {
+        font-size: 48px;
+        color: #c0c4cc;
+        margin-bottom: 16px;
+    }
+    
+    /* 批量操作移动端优化 */
+    .batch-actions {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        padding: 10px;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+        z-index: 1000;
+    }
+    
+    .batch-actions .el-button {
+        width: 48%;
+        margin: 0 1%;
+    }
+}
+
+/* 超小屏幕优化 */
+@media (max-width: 480px) {
+    .main-header {
+        height: 50px !important;
+        line-height: 50px;
+    }
+    
+    .system-title {
+        font-size: 14px;
+    }
+    
+    .logo-section i {
+        font-size: 18px;
+    }
+    
+    .mobile-menu {
+        top: 50px;
+    }
+    
+    .sidebar {
+        top: 50px;
+        height: calc(100vh - 50px);
+    }
+    
+    .sidebar-overlay {
+        top: 50px;
+    }
+    
+    .main-container {
+        padding: 5px;
+    }
+    
+    .course-card {
+        margin-bottom: 8px;
+    }
+    
+    .el-dialog {
+        width: 98% !important;
+        margin: 2vh auto !important;
+    }
+    
+    .el-dialog__body {
+        padding: 10px;
+        max-height: 80vh;
+    }
+    
+    .stat-number {
+        font-size: 20px;
+    }
+    
+    .chart-container {
+        height: 250px;
+    }
+}
+
+/* 横屏优化 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .el-dialog {
+        width: 90% !important;
+        margin: 2vh auto !important;
+    }
+    
+    .el-dialog__body {
+        max-height: 60vh;
+    }
+    
+    .chart-container {
+        height: 200px;
+    }
+}
+
+/* 触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+    .el-button {
+        min-height: 44px;
+        padding: 12px 20px;
+    }
+    
+    .el-menu-item {
+        min-height: 44px;
+        line-height: 44px;
+    }
+    
+    .el-input__inner {
+        min-height: 44px;
+        line-height: 44px;
+    }
+    
+    .el-select .el-input__inner {
+        min-height: 44px;
+        line-height: 44px;
+    }
+    
+    .el-checkbox__label {
+        font-size: 16px;
+    }
+    
+    .el-radio__label {
+        font-size: 16px;
+    }
+}
+
+/* 移动端专用组件 */
+.mobile-fab {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #409EFF;
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px rgba(64, 158, 255, 0.4);
+    z-index: 1000;
+    cursor: pointer;
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-fab {
+        display: block;
+    }
+}
+
+.mobile-fab i {
+    font-size: 24px;
+}
+
+/* 移动端加载状态 */
+.mobile-loading {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 9999;
+    background: rgba(0,0,0,0.7);
+    color: white;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.mobile-loading .el-icon-loading {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* 移动端提示 */
+.mobile-tip {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    background: #409EFF;
+    color: white;
+    padding: 10px;
+    border-radius: 4px;
+    text-align: center;
+    z-index: 1001;
+    font-size: 14px;
+}
+
+/* 移动端底部导航 */
+.mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #eee;
+    display: none;
+    z-index: 1000;
+}
+
+@media (max-width: 768px) {
+    .mobile-bottom-nav {
+        display: flex;
+    }
+}
+
+.mobile-nav-item {
+    flex: 1;
+    text-align: center;
+    padding: 8px 4px;
+    color: #666;
+    text-decoration: none;
+    font-size: 12px;
+}
+
+.mobile-nav-item.active {
+    color: #409EFF;
+}
+
+.mobile-nav-item i {
+    display: block;
+    font-size: 20px;
+    margin-bottom: 4px;
+}

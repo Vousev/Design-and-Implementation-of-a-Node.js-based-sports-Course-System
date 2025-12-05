@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>体育选课系统 - 登录注册</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <link rel="stylesheet" href="/css/homepage.css">
+    <link rel="stylesheet" href="/css/mobile.css">
+    <link rel="stylesheet" href="/css/charts.css">
+    <link rel="stylesheet" href="/css/notifications.css">
+    <link rel="stylesheet" href="/css/upload.css">
+    <link rel="stylesheet" href="/css/batch-operations.css">
+    <link rel="icon" href="/images/favicon.ico" type="image/x-icon">
+</head>
+<body>
+    <div id="app">
+        <!-- 背景装饰 -->
+        <div class="background-decoration">
+            <div class="floating-shapes">
+                <div class="shape shape-1"></div>
+                <div class="shape shape-2"></div>
+                <div class="shape shape-3"></div>
+                <div class="shape shape-4"></div>
+                <div class="shape shape-5"></div>
+            </div>
+        </div>
+
+        <!-- 主容器 -->
+        <div class="main-container">
+            <!-- 顶部导航 -->
+            <header class="header">
+                <div class="header-content">
+                    <div class="logo">
+                        <i class="el-icon-trophy"></i>
+                        <span>体育选课系统</span>
+                    </div>
+                    <div class="header-actions">
+                        <el-button type="text" @click="showAbout = true">关于系统</el-button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 主要内容区域 -->
+            <main class="main-content">
+                <!-- 左侧介绍区域 -->
+                <div class="intro-section">
+                    <div class="intro-content">
+                        <h1 class="intro-title">
+                            <span class="title-main">体育选课系统</span>
+                            <span class="title-sub">让运动更简单，让选课更便捷</span>
+                        </h1>
+                        <p class="intro-description">
+                            现代化的体育选课管理平台，为学生、教师和管理员提供全方位的服务支持。
+                            支持在线选课、课程管理、成绩录入等功能，让体育教育更加智能化。
+                        </p>
+                        <div class="features">
+                            <div class="feature-item">
+                                <i class="el-icon-user"></i>
+                                <span>学生选课</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="el-icon-s-custom"></i>
+                                <span>教师管理</span>
+                            </div>
+                            <div class="feature-item">
+                                <i class="el-icon-setting"></i>
+                                <span>系统管理</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧登录注册区域 -->
+                <div class="auth-section">
+                    <div class="auth-container">
+                        <!-- 身份选择 -->
+                        <div class="role-selector">
+                            <h3>请选择您的身份</h3>
+                            <div class="role-options">
+                                <div 
+                                    class="role-option" 
+                                    :class="{ active: selectedRole === 'student' }"
+                                    @click="selectRole('student')">
+                                    <i class="el-icon-user"></i>
+                                    <span>学生</span>
+                                </div>
+                                <div 
+                                    class="role-option" 
+                                    :class="{ active: selectedRole === 'teacher' }"
+                                    @click="selectRole('teacher')">
+                                    <i class="el-icon-s-custom"></i>
+                                    <span>教师</span>
+                                </div>
+                                <div 
+                                    class="role-option" 
+                                    :class="{ active: selectedRole === 'admin' }"
+                                    @click="selectRole('admin')">
+                                    <i class="el-icon-setting"></i>
+                                    <span>管理员</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 登录注册切换 -->
+                        <div class="auth-tabs">
+                            <div 
+                                class="tab-item" 
+                                :class="{ active: authMode === 'login' }"
+                                @click="authMode = 'login'">
+                                登录
+                            </div>
+                            <div 
+                                class="tab-item" 
+                                :class="{ active: authMode === 'register' }"
+                                @click="authMode = 'register'">
+                                注册
+                            </div>
+                        </div>
+
+                        <!-- 登录表单 -->
+                        <div v-show="authMode === 'login'" class="auth-form">
+                            <el-form 
+                                :model="loginForm" 
+                                :rules="loginRules" 
+                                ref="loginForm" 
+                                label-width="0"
+                                @submit.native.prevent="handleLogin">
+                                <el-form-item prop="username">
+                                    <el-input
+                                        v-model="loginForm.username"
+                                        placeholder="请输入用户名/学号/工号"
+                                        prefix-icon="el-icon-user"
+                                        size="large">
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item prop="password">
+                                    <el-input
+                                        v-model="loginForm.password"
+                                        type="password"
+                                        placeholder="请输入密码"
+                                        prefix-icon="el-icon-lock"
+                                        size="large"
+                                        show-password>
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button 
+                                        type="primary" 
+                                        size="large" 
+                                        :loading="loginLoading"
+                                        @click="handleLogin"
+                                        class="auth-button">
+                                        登录
+                                    </el-button>
+                                </el-form-item>
+                            </el-form>
+                        </div>
+
+                        <!-- 注册表单 -->
+                        <div v-show="authMode === 'register'" class="auth-form">
+                            <el-form 
+                                :model="registerForm" 
+                                :rules="registerRules" 
+                                ref="registerForm" 
+                                label-width="0"
+                                @submit.native.prevent="handleRegister">
+                                <el-form-item prop="username">
+                                    <el-input
+                                        v-model="registerForm.username"
+                                        placeholder="请输入用户名"
+                                        prefix-icon="el-icon-user"
+                                        size="large">
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item prop="student_id" v-if="selectedRole === 'student'">
+                                    <el-input
+                                        v-model="registerForm.student_id"
+                                        placeholder="请输入学号"
+                                        prefix-icon="el-icon-postcard"
+                                        size="large">
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item prop="teacher_id" v-if="selectedRole === 'teacher'">
+                                    <el-input
+                                        v-model="registerForm.teacher_id"
+                                        placeholder="请输入工号"
+                                        prefix-icon="el-icon-postcard"
+                                        size="large">
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item prop="real_name">
+                                    <el-input
+                                        v-model="registerForm.real_name"
+                                        placeholder="请输入真实姓名"
+                                        prefix-icon="el-icon-edit"
+                                        size="large">
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item prop="email">
+                                    <el-input
+                                        v-model="registerForm.email"
+                                        placeholder="请输入邮箱"
+                                        prefix-icon="el-icon-message"
+                                        size="large">
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item prop="phone">
+                                    <el-input
+                                        v-model="registerForm.phone"
+                                        placeholder="请输入手机号"
+                                        prefix-icon="el-icon-phone"
+                                        size="large">
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item prop="password">
+                                    <el-input
+                                        v-model="registerForm.password"
+                                        type="password"
+                                        placeholder="请输入密码"
+                                        prefix-icon="el-icon-lock"
+                                        size="large"
+                                        show-password>
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item prop="confirmPassword">
+                                    <el-input
+                                        v-model="registerForm.confirmPassword"
+                                        type="password"
+                                        placeholder="请确认密码"
+                                        prefix-icon="el-icon-lock"
+                                        size="large"
+                                        show-password>
+                                    </el-input>
+                                </el-form-item>
+                                <el-form-item>
+                                    <el-button 
+                                        type="primary" 
+                                        size="large" 
+                                        :loading="registerLoading"
+                                        @click="handleRegister"
+                                        class="auth-button">
+                                        注册
+                                    </el-button>
+                                </el-form-item>
+                            </el-form>
+                        </div>
+                    </div>
+                </div>
+            </main>
+
+            <!-- 底部信息 -->
+            <footer class="footer">
+                <p>&copy; 2025 体育选课系统. 让运动更简单，让选课更便捷.</p>
+            </footer>
+        </div>
+
+        <!-- 关于系统对话框 -->
+        <el-dialog title="关于系统" :visible.sync="showAbout" width="600px">
+            <div class="about-content">
+                <h3>体育选课系统 v1.0</h3>
+                <p>这是一个现代化的体育选课管理平台，为学校体育教育提供全方位的数字化解决方案。</p>
+                
+                <h4>主要功能：</h4>
+                <ul>
+                    <li><strong>学生端：</strong>课程浏览、在线选课、收藏课程、选课历史查看</li>
+                    <li><strong>教师端：</strong>课程管理、学生管理、成绩录入、课程申请</li>
+                    <li><strong>管理员端：</strong>系统配置、用户管理、课程审核、数据统计</li>
+                </ul>
+                
+                <h4>技术特点：</h4>
+                <ul>
+                    <li>响应式设计，支持多设备访问</li>
+                    <li>现代化UI界面，用户体验友好</li>
+                    <li>安全可靠的用户认证系统</li>
+                    <li>实时数据同步，操作便捷高效</li>
+                </ul>
+            </div>
+        </el-dialog>
+    </div>
+
+    <!-- 引入Vue和ElementUI -->
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="/js/mobile.js"></script>
+    <script src="/js/charts.js"></script>
+    <script src="/js/notifications.js"></script>
+    <script src="/js/upload.js"></script>
+    <script src="/js/batch-operations.js"></script>
+    <script src="/js/homepage.js"></script>
+</body>
+</html>
